@@ -1,5 +1,15 @@
-from linkedin_scraper import Person
+"""Opt-in live collection example; this is not an offline test."""
 
-rick_fox = Person("https://www.linkedin.com/in/rifox?trk=pub-pbmap")
-iggy = Person("https://www.linkedin.com/in/andre-iguodala-65b48ab5")
-Anirudra = Person("https://in.linkedin.com/in/anirudra-choudhury-109635b1")
+import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("profile_url")
+    args = parser.parse_args()
+    from src.scrapers import Person
+    print(Person(args.profile_url))
+
+
+if __name__ == "__main__":
+    main()

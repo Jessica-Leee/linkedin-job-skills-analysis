@@ -1,12 +1,11 @@
-from linkedin_scraper.job_search import JobSearch
-import linkedin_scraper.actions as actions
-from selenium import webdriver
+"""Collect job listings only when explicitly invoked as a command."""
+
+import argparse
 import csv
+import math
+import os
+from pathlib import Path
 from time import sleep
-from selenium.webdriver.common.by import By
-from typing import List
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
 
 
 def save_dict_list_to_csv(data, filename, encoding='utf-8'):
@@ -46,45 +45,70 @@ def save_dict_list_to_csv(data, filename, encoding='utf-8'):
         return False
 
 
-# Create a Service object
-service = Service(ChromeDriverManager().install())
+def positive_int(value):
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return number
 
-# Create the driver with the service
-driver = webdriver.Chrome(service=service)
-# driver = webdriver.Chrome()
-email = "jessica.kexin.le@gmail.com"
-password = "Abcd1234!"
-print("Logging into LinkedIn...")
-actions.login(driver, email, password)
-print("Login successful")
-job_search = JobSearch(driver=driver, close_on_complete=False, scrape=False)
-# job_search contains jobs from your logged in front page:
-# - job_search.recommended_jobs
-# - job_search.still_hiring
-# - job_search.more_jobs
 
-result = []
-count = 0
-job_listings = job_search.search_all_pages("Manufacturing Engineer in semiconductor", max_pages=30) # returns the list of `Job` from the first page
-print(len(job_listings))
+def nonnegative_float(value):
+    number = float(value)
+    if not math.isfinite(number) or number < 0:
+        raise argparse.ArgumentTypeError("must be a finite nonnegative number")
+    return number
 
-print(f"Found {len(job_listings)} job listings")
 
-# Scrape each job and add to results
-for job in job_listings:
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--query", required=True, help="Job-search query")
+    parser.add_argument("--max-pages", type=positive_int, default=30)
+    parser.add_argument("--delay", type=nonnegative_float, default=1.0,
+                        help="Seconds between job-detail requests")
+    parser.add_argument("--output", type=Path, default=Path("outputs/jobs.csv"))
+    parser.add_argument("--headless", action="store_true")
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not args.query.strip():
+        parser.error("--query must not be blank")
+    email = os.environ.get("LINKEDIN_EMAIL", "").strip()
+    password = os.environ.get("LINKEDIN_PASSWORD", "")
+    if not email or not password:
+        parser.error("Set LINKEDIN_EMAIL and LINKEDIN_PASSWORD in the process environment")
+
+    # Import browser dependencies after configuration validation. Importing this
+    # module or requesting --help never starts Chrome or downloads a driver.
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
+    from .job_search import JobSearch
+    from . import actions
+
+    options = webdriver.ChromeOptions()
+    if args.headless:
+        options.add_argument("--headless=new")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     try:
-        job.scrape()
-        result.append(job.to_dict())
-        count += 1
-        # Print progress every 10 jobs
-        if count % 10 == 0:
-            print(f"Scraped {count} jobs so far...")
-    except Exception as e:
-        print(f"Error scraping job: {e}")
-    
-    # Add a small delay to avoid being rate-limited
-    sleep(1)
+        actions.login(driver, email, password)
+        search = JobSearch(driver=driver, close_on_complete=False, scrape=False)
+        listings = search.search_all_pages(args.query, max_pages=args.max_pages)
+        results = []
+        for job in listings:
+            try:
+                job.scrape()
+                results.append(job.to_dict())
+            except Exception as exc:
+                print(f"Could not collect job details: {exc}")
+            sleep(args.delay)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        return 0 if save_dict_list_to_csv(results, args.output) else 1
+    finally:
+        driver.quit()
 
-# Save the final results to CSV
-save_dict_list_to_csv(result, "manufacture_jobs_final.csv")
-print(f"Completed scraping {count} jobs. Results saved to semiconductor_jobs_final.csv")
+
+if __name__ == "__main__":
+    raise SystemExit(main())

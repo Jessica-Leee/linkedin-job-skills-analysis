@@ -15,6 +15,10 @@ from sklearn.decomposition import LatentDirichletAllocation, NMF
 from sklearn.cluster import KMeans
 from wordcloud import WordCloud
 import warnings
+try:
+    from .config import parse_analysis_args
+except ImportError:  # Support the historical direct-script entry point.
+    from config import parse_analysis_args
 warnings.filterwarnings('ignore')
 
 # -------------------- SETUP FUNCTIONS --------------------
@@ -845,20 +849,14 @@ def generate_skills_report(df, output_folder='emerging_skills_report'):
 
 # -------------------- MAIN FUNCTION --------------------
 
-def main():
-    """Main function to execute the analysis"""
-    # Setup NLTK
-    setup_nltk()
-    
-    # Define file paths
-    input_file = 'marvell_jobs_final.csv'
-    output_file = 'marvell_jobs_final_cleaned.csv'
-    
-    # Clean the data
-    df_cleaned = clean_data(input_file, output_file)
-    
-    # Generate comprehensive report
-    generate_skills_report(df_cleaned)
+def main(argv=None):
+    """Analyze explicit input paths; use the synthetic fixture by default."""
+    args = parse_analysis_args(argv)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    df_cleaned = clean_data(args.input, args.output_dir / "cleaned_jobs.csv")
+    if not args.clean_only:
+        setup_nltk()
+        generate_skills_report(df_cleaned, output_folder=args.output_dir / "skills_report")
 
 if __name__ == "__main__":
     main()
