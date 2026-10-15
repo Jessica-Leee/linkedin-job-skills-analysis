@@ -1,4 +1,4 @@
-# LinkedIn Job Analysis
+# LinkedIn Job Skills Analysis
 
 An exploratory Python project for studying skills mentioned in semiconductor and design-engineering job postings. It combines browser collection helpers with CSV cleaning, skill extraction, topic exploration, and report generation.
 
