@@ -1,70 +1,43 @@
-# LinkedIn Job Analysis Project
+# LinkedIn Job Analysis
 
-This project analyzes job postings from LinkedIn to gain insights into the job market, particularly focusing on semiconductor and design engineering positions.
+An exploratory Python project for examining skills mentioned in semiconductor and design-engineering job postings. It combines collection utilities with text cleaning, skill extraction, topic exploration, and report generation.
 
-## Project Structure
+## Implemented
 
-```
-.
-├── src/
-│   ├── scrapers/        # LinkedIn scraping scripts
-│   │   ├── main.py     # Main scraping script
-│   │   ├── job_search.py
-│   │   ├── jobs.py
-│   │   ├── person.py
-│   │   ├── company.py
-│   │   ├── actions.py
-│   │   ├── constants.py
-│   │   ├── objects.py
-│   │   └── selectors.py
-│   ├── analysis/        # Data analysis and processing scripts
-│   │   └── pre-process.py
-│   └── data/           # Data storage directory
-├── docs/               # Documentation and presentations
-├── tests/             # Test directory
-├── requirements.txt    # Project dependencies
-└── README.md          # This file
+- Selenium helpers for job searches, pagination, job details, companies, and profiles.
+- CSV cleaning, title normalization, missing-value handling, and posting-month extraction.
+- Technical-skill dictionary matching and comparisons by role, location, and time.
+- TF-IDF features, LDA and NMF topic exploration, and KMeans clustering.
+- Skill-frequency charts, word clouds, co-occurrence heatmaps, and generated text reports.
+
+The main analytical workflow is in `src/analysis/pre-process.py`. The collection components are under `src/scrapers/`.
+
+## Setup
+
+Create an environment and install the listed dependencies:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-## Setup Instructions
+The dependency file is incomplete. Direct imports also require `nltk`, `scikit-learn`, `wordcloud`, `webdriver-manager`, and `lxml`. Reconcile these dependencies before running the scripts. The analysis setup may download NLTK resources on first use.
 
-1. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+For analysis, supply a job-posting CSV and update the paths in `main()`. The current defaults expect `marvell_jobs_final.csv` in the working directory and write `marvell_jobs_final_cleaned.csv`. The cleaner expects fields including `job_title`, `company`, `location`, and `posted_date`; the report also uses job-description text.
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+After preparing the input and environment:
 
-## Usage
+```sh
+python src/analysis/pre-process.py
+```
 
-1. Scrape LinkedIn data:
-   ```bash
-   python src/scrapers/main.py
-   ```
+Generated reports and charts are written to `emerging_skills_report/`.
 
-2. Analyze the data:
-   ```bash
-   python src/analysis/pre-process.py
-   ```
+## Current limitations
 
-## Components
+The repository does not include a sample CSV or a checked-in results package. Its charts and topic models therefore cannot be reproduced from a clone alone, and no validated job-market findings or predictive scores are reported here.
 
-- **Scrapers**: A comprehensive LinkedIn scraping package that can:
-  - Search for jobs
-  - Extract job details
-  - Get company information
-  - Retrieve person profiles
+The scraping entry point imports `linkedin_scraper`, while the bundled directory is named `src/scrapers`; its package layout and imports need reconciliation before the documented collection command can run. Authentication must be supplied through local configuration rather than copied into source or examples.
 
-- **Analysis**: Tools for processing and analyzing the collected data
-
-## Data Analysis Results
-
-The analysis results and insights can be found in the `docs` directory, including the presentation file.
-
-## Contributing
-
-Feel free to submit issues and enhancement requests. 
+The scraper is browser- and page-structure dependent. The `tests/` directory contains a scraping example, not a verified offline regression suite. Preserve applicable upstream notices when reusing the collection components.
